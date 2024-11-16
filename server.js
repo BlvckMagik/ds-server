@@ -4,6 +4,7 @@ const readline = require("readline");
 const dotenv = require("dotenv");
 const express = require("express");
 const schedule = require("node-schedule");
+const cors = require("cors");
 
 dotenv.config();
 
@@ -17,6 +18,12 @@ const client = new TelegramClient(stringSession, apiId, apiHash, {
 
 const app = express();
 app.use(express.json());
+app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+  })
+);
 
 // Масив для зберігання запланованих повідомлень
 const scheduledMessages = [];
@@ -28,10 +35,12 @@ function askQuestion(query) {
     output: process.stdout,
   });
 
-  return new Promise((resolve) => rl.question(query, (ans) => {
-    rl.close();
-    resolve(ans);
-  }));
+  return new Promise((resolve) =>
+    rl.question(query, (ans) => {
+      rl.close();
+      resolve(ans);
+    })
+  );
 }
 
 (async () => {
@@ -45,7 +54,9 @@ function askQuestion(query) {
         return phone.trim();
       },
       password: async () => {
-        const password = await askQuestion("Введіть ваш пароль (2FA, якщо активовано): ");
+        const password = await askQuestion(
+          "Введіть ваш пароль (2FA, якщо активовано): "
+        );
         return password.trim();
       },
       phoneCode: async () => {
@@ -72,7 +83,9 @@ function askQuestion(query) {
     const { chatId, message } = req.body;
 
     if (!chatId || !message) {
-      return res.status(400).send({ error: "chatId та message є обов'язковими параметрами" });
+      return res
+        .status(400)
+        .send({ error: "chatId та message є обов'язковими параметрами" });
     }
 
     try {
@@ -80,7 +93,10 @@ function askQuestion(query) {
       res.send({ status: "success", message: "Повідомлення надіслано" });
     } catch (err) {
       console.error("Помилка надсилання повідомлення:", err);
-      res.status(500).send({ error: "Помилка надсилання повідомлення", details: err.message });
+      res.status(500).send({
+        error: "Помилка надсилання повідомлення",
+        details: err.message,
+      });
     }
   });
 
@@ -89,17 +105,22 @@ function askQuestion(query) {
     const { chatId, message, dateTime } = req.body;
 
     if (!chatId || !message || !dateTime) {
-      return res.status(400).send({ error: "chatId, message, та dateTime є обов'язковими параметрами" });
+      return res.status(400).send({
+        error: "chatId, message, та dateTime є обов'язковими параметрами",
+      });
     }
 
     const date = new Date(dateTime);
     if (isNaN(date.getTime())) {
-      return res.status(400).send({ error: "Некоректний формат дати. Використовуйте ISO формат (YYYY-MM-DDTHH:mm:ss)" });
+      return res.status(400).send({
+        error:
+          "Некоректний формат дати. Використовуйте ISO формат (YYYY-MM-DDTHH:mm:ss)",
+      });
     }
 
     // Створюємо унікальний ідентифікатор
     const id = `${chatId}-${Date.now()}`;
-    
+
     // Плануємо завдання
     const job = schedule.scheduleJob(date, async () => {
       try {
@@ -120,12 +141,14 @@ function askQuestion(query) {
 
   // Ендпоінт для перегляду всіх запланованих повідомлень
   app.get("/scheduled-messages", (req, res) => {
-    res.send(scheduledMessages.map(({ id, chatId, message, dateTime }) => ({
-      id,
-      chatId,
-      message,
-      dateTime,
-    })));
+    res.send(
+      scheduledMessages.map(({ id, chatId, message, dateTime }) => ({
+        id,
+        chatId,
+        message,
+        dateTime,
+      }))
+    );
   });
 
   // Ендпоінт для видалення запланованого повідомлення
@@ -134,7 +157,9 @@ function askQuestion(query) {
 
     const index = scheduledMessages.findIndex((msg) => msg.id === id);
     if (index === -1) {
-      return res.status(404).send({ error: "Заплановане повідомлення не знайдено" });
+      return res
+        .status(404)
+        .send({ error: "Заплановане повідомлення не знайдено" });
     }
 
     // Скасовуємо завдання
@@ -142,7 +167,10 @@ function askQuestion(query) {
     // Видаляємо із масиву
     scheduledMessages.splice(index, 1);
 
-    res.send({ status: "success", message: "Заплановане повідомлення видалено" });
+    res.send({
+      status: "success",
+      message: "Заплановане повідомлення видалено",
+    });
   });
 
   // Запуск сервера
