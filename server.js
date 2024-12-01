@@ -89,7 +89,7 @@ function askQuestion(query) {
     }
 
     try {
-      await client.sendMessage(chatId, { message });
+      await client.sendMessage(chatId, { message, parseMode: "md" });
       res.send({ status: "success", message: "Повідомлення надіслано" });
     } catch (err) {
       console.error("Помилка надсилання повідомлення:", err);
@@ -124,7 +124,7 @@ function askQuestion(query) {
     // Плануємо завдання
     const job = schedule.scheduleJob(date, async () => {
       try {
-        await client.sendMessage(chatId, { message });
+        await client.sendMessage(chatId, { message, parseMode: "md" });
         console.log(`Повідомлення надіслано: ${message}`);
         // Видаляємо з масиву після виконання
         const index = scheduledMessages.findIndex((msg) => msg.id === id);
